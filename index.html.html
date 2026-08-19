@@ -267,9 +267,10 @@
     </div>
   </div>
 
-  <!-- 1. Firebase SDK 불러오기 -->
+  <!-- 1. Firebase SDK 불러오기 (Storage 추가됨) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
   <script>
     // 키오스크 전용 모드 체크 (?mode=kiosk)
@@ -288,10 +289,11 @@
       measurementId: "G-TTV99051J8"
     };
 
-    // Firebase 초기화
+    // Firebase 초기화 (Storage 추가됨)
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const dashboardRef = database.ref('dashboard_items');
+    const storage = firebase.storage(); 
 
     // 전역 변수
     let autoCloseTimer = null;
@@ -386,11 +388,11 @@
               <div class="flex items-center gap-1.5">
                 <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
                   <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 1
-                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 1)">
+                  <input type="file" accept="image/*" class="hidden" onchange="handleMultiplePhotos(event, 1)">
                 </label>
                 <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
                   <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 2
-                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 2)">
+                  <input type="file" accept="image/*" class="hidden" onchange="handleMultiplePhotos(event, 2)">
                 </label>
               </div>
               <div class="photo-preview-list text-[11px] space-y-0.5"></div>
@@ -540,19 +542,60 @@
       }
     }
 
-    function handleMultiplePhotos(event, btnIndex) {
+    // [Firebase Storage 업로드 기능으로 대체됨]
+    async function handleMultiplePhotos(event, btnIndex) {
       const files = event.target.files;
+      if (files.length === 0) return;
+
+      const file = files[0]; 
       const row = event.target.closest('tr');
       const previewList = row.querySelector('.photo-preview-list');
 
-      if (files.length === 0) return;
-      const badge = document.createElement('div');
-      badge.className = "flex items-center gap-1 font-semibold text-slate-700 bg-slate-200/50 px-2 py-1 rounded border border-slate-200 mt-1";
-      const btnLabel = btnIndex === 1 ? '사진 1' : '사진 2';
-      const colorClass = btnIndex === 1 ? 'text-blue-600' : 'text-indigo-600';
-      badge.innerHTML = `<span class="${colorClass} font-bold">[${btnLabel}]</span> ${files.length}장 선택됨`;
+      // 구분을 위한 식별자 (Export 탭이면 CNTR#, 대시보드면 차량번호 추출 시도)
+      let identifier = '사진';
+      let cntrInput = row.children[2]?.querySelector('input');
+      let carNoCell = row.children[4];
       
-      previewList.appendChild(badge);
+      if (cntrInput && cntrInput.value) {
+        identifier = cntrInput.value.trim();
+      } else if (carNoCell && carNoCell.innerText) {
+        identifier = carNoCell.innerText.trim();
+      }
+      
+      const fileName = `Photo_${identifier}_${Date.now()}_${file.name}`;
+      const storageRef = storage.ref(`photos/${fileName}`);
+
+      const loadingBadge = document.createElement('div');
+      loadingBadge.className = "flex items-center gap-1 font-semibold text-amber-700 bg-amber-100 px-2 py-1.5 rounded border border-amber-200 mt-1";
+      loadingBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> 업로드 중...`;
+      previewList.appendChild(loadingBadge);
+
+      try {
+        const snapshot = await storageRef.put(file);
+        const downloadURL = await snapshot.ref.getDownloadURL();
+
+        loadingBadge.remove(); 
+
+        const badge = document.createElement('div');
+        badge.className = "mt-1";
+        const btnLabel = btnIndex === 1 ? '사진 1' : '사진 2';
+        
+        badge.innerHTML = `
+          <div class="flex items-center justify-between font-bold text-slate-700 bg-emerald-50 px-2 py-1.5 rounded-lg border border-emerald-300 shadow-sm">
+            <span class="text-emerald-700 text-[10px]">[${btnLabel}] 완료</span>
+            <a href="${downloadURL}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] px-2 py-1 rounded transition flex items-center gap-1">
+              보기/다운
+            </a>
+          </div>
+        `;
+        previewList.appendChild(badge);
+
+      } catch (error) {
+        console.error("사진 업로드 실패:", error);
+        loadingBadge.className = "flex items-center gap-1 font-semibold text-red-700 bg-red-100 px-2 py-1.5 rounded border border-red-200 mt-1 text-[11px]";
+        loadingBadge.innerHTML = `에러 발생`;
+        alert("사진 업로드 중 문제가 발생했습니다. Firebase Storage 권한 설정을 확인해 주세요.");
+      }
     }
 
     function findManagerByClient(clientInput) {
@@ -605,7 +648,7 @@
       document.body.appendChild(script);
     }
 
-    // [수정된 부분 1] Export 탭 테이블 생성 시 select 이벤트 추가
+    // [수정된 부분] Export 탭 테이블 렌더링 (display 속성 고정)
     function renderExportTable(rows) {
       const tbody = document.getElementById('export-table-body');
       if (!tbody) return;
@@ -655,20 +698,20 @@
             </select>
           </td>
           <td class="py-2.5 px-3 min-w-[170px]">
-            <div class="export-photo-btn-group hidden flex flex-col gap-1.5">
+            <div class="export-photo-btn-group flex-col gap-1.5" style="display: none;">
               <div class="flex items-center gap-1.5">
                 <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded font-medium flex items-center gap-1">
                   <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 1
-                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 1)">
+                  <input type="file" accept="image/*" class="hidden" onchange="handleMultiplePhotos(event, 1)">
                 </label>
                 <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2 py-1 rounded font-medium flex items-center gap-1">
                   <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 2
-                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 2)">
+                  <input type="file" accept="image/*" class="hidden" onchange="handleMultiplePhotos(event, 2)">
                 </label>
               </div>
               <div class="photo-preview-list text-[10px] space-y-0.5"></div>
             </div>
-            <span class="export-default-photo-text text-slate-400 text-center block text-xs">-</span>
+            <span class="export-default-photo-text text-slate-400 text-center block text-xs" style="display: block;">-</span>
           </td>
         `;
         tbody.appendChild(tr);
@@ -677,19 +720,21 @@
       lucide.createIcons();
     }
 
-    // [수정된 부분 2] Export 탭 상태 변경 시 사진 UI 토글 함수
+    // [수정된 부분] 상태 변경 시 사진 업로드 버튼 토글 (CSS 우선순위 해결)
     function handleExportStatusChange(selectElement) {
       const row = selectElement.closest('tr');
+      if (!row) return;
+
       const photoGroup = row.querySelector('.export-photo-btn-group');
       const defaultText = row.querySelector('.export-default-photo-text');
 
       if (selectElement.value === 'DONE') {
-        photoGroup.classList.remove('hidden');
-        defaultText.classList.add('hidden');
-        selectElement.className = "w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
+        if (photoGroup) photoGroup.style.display = 'flex';
+        if (defaultText) defaultText.style.display = 'none';
+        selectElement.className = "w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-extrabold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
       } else {
-        photoGroup.classList.add('hidden');
-        defaultText.classList.remove('hidden');
+        if (photoGroup) photoGroup.style.display = 'none';
+        if (defaultText) defaultText.style.display = 'block';
         selectElement.className = "w-full border border-slate-200 bg-white text-slate-700 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
       }
     }
