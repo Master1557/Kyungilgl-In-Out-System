@@ -21,8 +21,8 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
 
-  <!-- Header -->
-  <header class="bg-slate-900 text-white px-6 py-3.5 flex justify-between items-center shadow-md sticky top-0 z-40">
+  <!-- Header (키오스크 전용 모드에서는 자동으로 숨겨짐) -->
+  <header id="main-header" class="bg-slate-900 text-white px-6 py-3.5 flex justify-between items-center shadow-md sticky top-0 z-40">
     <div class="flex items-center gap-3">
       <!-- 로고 이미지 -->
       <img src="logo.png" alt="경일글로벌 로고" class="h-8 w-auto object-contain" onerror="this.style.display='none'; document.getElementById('header-fallback-icon').style.display='flex';">
@@ -37,7 +37,7 @@
       <button id="nav-dashboard-btn" onclick="switchTab('dashboard')" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-blue-600 text-white shadow-sm">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
         <span>오퍼레이터 대시보드</span>
-        <span id="nav-badge" class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-black">1</span>
+        <span id="nav-badge" class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-black">0</span>
       </button>
 
       <button id="nav-export-btn" onclick="switchTab('export')" class="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition">
@@ -51,8 +51,11 @@
       </button>
     </div>
 
-    <!-- Settings Gear -->
+    <!-- Settings & Firebase Status -->
     <div class="flex items-center gap-2">
+      <span id="db-status-badge" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span> 연결 중...
+      </span>
       <button onclick="openSettingsModal()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="환경설정">
         <i data-lucide="settings" class="w-5 h-5"></i>
       </button>
@@ -63,11 +66,11 @@
   <main id="tab-dashboard" class="max-w-7xl mx-auto px-4 py-6 space-y-6 block">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
-        <div><p class="text-xs font-semibold text-slate-500 mb-1">금일 총 접수</p><p class="text-3xl font-black text-slate-900"><span id="count-total">1</span> <span class="text-lg font-bold text-slate-600">건</span></p></div>
+        <div><p class="text-xs font-semibold text-slate-500 mb-1">금일 총 접수</p><p class="text-3xl font-black text-slate-900"><span id="count-total">0</span> <span class="text-lg font-bold text-slate-600">건</span></p></div>
         <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i data-lucide="clipboard-list" class="w-6 h-6"></i></div>
       </div>
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
-        <div><p class="text-xs font-semibold text-slate-500 mb-1">대기 중</p><p class="text-3xl font-black text-amber-500"><span id="count-waiting">1</span> <span class="text-lg font-bold text-slate-600">건</span></p></div>
+        <div><p class="text-xs font-semibold text-slate-500 mb-1">대기 중</p><p class="text-3xl font-black text-amber-500"><span id="count-waiting">0</span> <span class="text-lg font-bold text-slate-600">건</span></p></div>
         <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center"><i data-lucide="clock" class="w-6 h-6"></i></div>
       </div>
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
@@ -82,7 +85,7 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
       <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-        <div class="flex items-center gap-2"><i data-lucide="clipboard-check" class="w-5 h-5 text-slate-600"></i><h2 class="font-bold text-slate-800 text-lg">실시간 접수 현황</h2></div>
+        <div class="flex items-center gap-2"><i data-lucide="clipboard-check" class="w-5 h-5 text-slate-600"></i><h2 class="font-bold text-slate-800 text-lg">실시간 접수 현황 (Firebase 실시간 연동)</h2></div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-slate-600">
@@ -102,43 +105,8 @@
             </tr>
           </thead>
           <tbody id="table-body" class="divide-y divide-slate-100 font-medium">
-            <tr class="hover:bg-slate-50/80 transition">
-              <td class="py-3.5 px-3 text-center nowrap-cell">
-                <button onclick="deleteDashboardRow(this)" class="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-lg border border-red-200 transition" title="접수건 삭제">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-              </td>
-              <td class="py-3.5 px-4 text-center nowrap-cell"><span class="text-blue-600 font-bold">하차(입고)</span></td>
-              <td class="py-3.5 px-4 text-slate-500 nowrap-cell">08-13 15:36</td>
-              <td class="py-3.5 px-4 min-w-[130px] nowrap-cell"><input type="text" value="진영민" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-blue-500"></td>
-              <td class="py-3.5 px-4 font-bold text-slate-800 nowrap-cell">부산80바1234</td>
-              <td class="py-3.5 px-4 text-slate-500 nowrap-cell">010-1234-5678</td>
-              <td class="py-3.5 px-4 nowrap-cell"><input type="text" value="USCOM(비나텍)" class="w-full border border-slate-200 rounded px-2 py-1 text-xs text-slate-800 outline-none"></td>
-              <td class="py-3.5 px-4 text-center font-bold text-blue-600 nowrap-cell">50</td>
-              <td class="py-3.5 px-4 nowrap-cell"><input type="text" value="샘플 데이터" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 outline-none"></td>
-              <td class="py-3.5 px-4 text-center nowrap-cell">
-                <select onchange="updateDashboardStatus(this)" class="status-select w-full border border-amber-300 bg-amber-50 text-amber-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer">
-                  <option value="WAITING" selected class="text-slate-900 bg-white">접수완료</option>
-                  <option value="IN_PROGRESS" class="text-slate-900 bg-white">작업 중</option>
-                  <option value="COMPLETED" class="text-slate-900 bg-white">작업 완료</option>
-                </select>
-              </td>
-              <td class="py-3.5 px-4 photo-cell nowrap-cell">
-                <div class="photo-btn-group hidden flex flex-col gap-1.5">
-                  <div class="flex items-center gap-1.5">
-                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
-                      <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 1
-                      <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 1)">
-                    </label>
-                    <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
-                      <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 2
-                      <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 2)">
-                    </label>
-                  </div>
-                  <div class="photo-preview-list text-[11px] space-y-0.5"></div>
-                </div>
-                <span class="default-photo-text text-slate-400 text-xs">-</span>
-              </td>
+            <tr>
+              <td colspan="11" class="text-center py-8 text-slate-400">데이터를 불러오는 중입니다...</td>
             </tr>
           </tbody>
         </table>
@@ -212,7 +180,7 @@
         <!-- 실시간 대기순번 표시 박스 -->
         <div class="bg-slate-900 border border-blue-500/40 rounded-2xl p-4 max-w-sm mx-auto shadow-inner">
           <p class="text-xs text-blue-400 font-bold mb-1">현재 대기순번</p>
-          <p class="text-3xl font-black text-amber-400 tracking-tight"><span id="kiosk-header-queue-count">1</span><span class="text-lg text-slate-300 font-bold ml-1">번째</span></p>
+          <p class="text-3xl font-black text-amber-400 tracking-tight"><span id="kiosk-header-queue-count">0</span><span class="text-lg text-slate-300 font-bold ml-1">번째</span></p>
         </div>
       </div>
 
@@ -268,7 +236,7 @@
       
       <div class="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 my-2">
         <p class="text-slate-400 text-xs mb-1">현재 기사님의 순번</p>
-        <p class="text-3xl font-black text-amber-400"><span id="modal-queue-order-number">1</span>번째</p>
+        <p class="text-3xl font-black text-amber-400"><span id="modal-queue-order-number">0</span>번째</p>
       </div>
 
       <p class="text-lg font-bold text-amber-400 leading-snug">차에서 대기해주세요. 빠른 시간내에 전화 드리겠습니다.<br><span class="text-xs text-slate-400 font-normal">(위치는 전화로 알려드릴 예정입니다.)</span></p>
@@ -299,14 +267,232 @@
     </div>
   </div>
 
+  <!-- 1. Firebase SDK 불러오기 -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
   <script>
+    // 키오스크 전용 모드 체크 (?mode=kiosk)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isKioskOnlyMode = urlParams.get('mode') === 'kiosk';
+
+    // 2. Firebase 설정 정보
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgXG4dVextcvKD2vwsa11Y7zXPp8rbI08",
+      authDomain: "kiglsystem.firebaseapp.com",
+      databaseURL: "https://kiglsystem-default-rtdb.firebaseio.com",
+      projectId: "kiglsystem",
+      storageBucket: "kiglsystem.firebasestorage.app",
+      messagingSenderId: "782535308238",
+      appId: "1:782535308238:web:afab46d543d96648eb319f",
+      measurementId: "G-TTV99051J8"
+    };
+
+    // Firebase 초기화
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const dashboardRef = database.ref('dashboard_items');
+
+    // 전역 변수
+    let autoCloseTimer = null;
+    let clientManagerMap = {};
+    let localDataMap = {};
+
     lucide.createIcons();
 
-    // 전역 타이머 변수
-    let autoCloseTimer = null;
+    // Firebase 실시간 감지
+    dashboardRef.on('value', (snapshot) => {
+      const data = snapshot.val() || {};
+      localDataMap = data;
 
-    // 전역 동기화 데이터 매핑 객체 (화주명 -> 담당자)
-    let clientManagerMap = {};
+      const dbStatusEl = document.getElementById('db-status-badge');
+      if(dbStatusEl) {
+        dbStatusEl.className = "text-xs bg-emerald-950 text-emerald-400 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 border border-emerald-800";
+        dbStatusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 실시간 연동 중';
+      }
+
+      renderDashboardTable(data);
+      recalculateDashboardCounts(data);
+    }, (error) => {
+      console.error("Firebase 읽기 오류:", error);
+      const dbStatusEl = document.getElementById('db-status-badge');
+      if(dbStatusEl) {
+        dbStatusEl.className = "text-xs bg-red-950 text-red-400 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 border border-red-800";
+        dbStatusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> 연결 오류';
+      }
+    });
+
+    // 대시보드 테이블 렌더링
+    function renderDashboardTable(data) {
+      const tbody = document.getElementById('table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const keys = Object.keys(data);
+      if (keys.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-slate-400 font-semibold">등록된 접수 건이 없습니다.</td></tr>`;
+        return;
+      }
+
+      keys.reverse().forEach(key => {
+        const item = data[key];
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/80 transition";
+
+        const typeStyle = item.workType && item.workType.includes('상차') 
+                          ? `<span class="text-amber-500 font-bold">${item.workType}</span>` 
+                          : `<span class="text-blue-600 font-bold">${item.workType || '하차(입고)'}</span>`;
+
+        const isCompleted = item.status === 'COMPLETED';
+        const photoGroupClass = isCompleted ? '' : 'hidden';
+        const defaultTextClass = isCompleted ? 'hidden' : '';
+
+        let selectClass = "status-select w-full border border-amber-300 bg-amber-50 text-amber-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
+        if (item.status === 'IN_PROGRESS') {
+          selectClass = "status-select w-full border border-blue-300 bg-blue-50 text-blue-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
+        } else if (item.status === 'COMPLETED') {
+          selectClass = "status-select w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
+        }
+
+        tr.innerHTML = `
+          <td class="py-3.5 px-3 text-center nowrap-cell">
+            <button onclick="deleteDashboardRow('${key}')" class="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-lg border border-red-200 transition" title="접수건 삭제">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+          <td class="py-3.5 px-4 text-center nowrap-cell">${typeStyle}</td>
+          <td class="py-3.5 px-4 text-slate-500 nowrap-cell">${item.timeStr || '-'}</td>
+          <td class="py-3.5 px-4 min-w-[130px] nowrap-cell">
+            <input type="text" value="${item.manager || ''}" onchange="updateFirebaseField('${key}', 'manager', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-blue-500">
+          </td>
+          <td class="py-3.5 px-4 font-bold text-slate-800 nowrap-cell">${item.carNumber || ''}</td>
+          <td class="py-3.5 px-4 text-slate-500 nowrap-cell">${item.phoneNumber || ''}</td>
+          <td class="py-3.5 px-4 nowrap-cell">
+            <input type="text" value="${item.clientName || ''}" onchange="updateFirebaseField('${key}', 'clientName', this.value)" class="w-full border border-slate-200 rounded px-2 py-1 text-xs text-slate-800 outline-none">
+          </td>
+          <td class="py-3.5 px-4 text-center font-bold text-blue-600 nowrap-cell">${item.quantity || 0}</td>
+          <td class="py-3.5 px-4 nowrap-cell">
+            <input type="text" value="${item.note || ''}" onchange="updateFirebaseField('${key}', 'note', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 outline-none">
+          </td>
+          <td class="py-3.5 px-4 text-center nowrap-cell">
+            <select onchange="updateDashboardStatus('${key}', this.value)" class="${selectClass}">
+              <option value="WAITING" ${item.status === 'WAITING' ? 'selected' : ''} class="text-slate-900 bg-white">접수완료</option>
+              <option value="IN_PROGRESS" ${item.status === 'IN_PROGRESS' ? 'selected' : ''} class="text-slate-900 bg-white">작업 중</option>
+              <option value="COMPLETED" ${item.status === 'COMPLETED' ? 'selected' : ''} class="text-slate-900 bg-white">작업 완료</option>
+            </select>
+          </td>
+          <td class="py-3.5 px-4 photo-cell nowrap-cell">
+            <div class="photo-btn-group ${photoGroupClass} flex flex-col gap-1.5">
+              <div class="flex items-center gap-1.5">
+                <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
+                  <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 1
+                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 1)">
+                </label>
+                <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
+                  <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 2
+                  <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 2)">
+                </label>
+              </div>
+              <div class="photo-preview-list text-[11px] space-y-0.5"></div>
+            </div>
+            <span class="default-photo-text ${defaultTextClass} text-slate-400 text-xs">-</span>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+    }
+
+    function recalculateDashboardCounts(data) {
+      let total = 0, waiting = 0, progress = 0, completed = 0;
+
+      Object.values(data).forEach(item => {
+        total++;
+        if (item.status === 'WAITING') waiting++;
+        else if (item.status === 'IN_PROGRESS') progress++;
+        else if (item.status === 'COMPLETED') completed++;
+      });
+
+      const totalEl = document.getElementById('count-total');
+      if (totalEl) {
+        document.getElementById('count-total').innerText = total;
+        document.getElementById('count-waiting').innerText = waiting;
+        document.getElementById('count-progress').innerText = progress;
+        document.getElementById('count-completed').innerText = completed;
+        document.getElementById('nav-badge').innerText = total;
+      }
+
+      const headerQueueEl = document.getElementById('kiosk-header-queue-count');
+      if (headerQueueEl) headerQueueEl.innerText = waiting + 1;
+
+      return waiting;
+    }
+
+    function handleKioskSubmit(e) {
+      e.preventDefault();
+
+      const workTypeInput = document.querySelector('input[name="work-type"]:checked');
+      const workType = workTypeInput ? workTypeInput.value : '하차(입고)';
+      const clientName = document.getElementById('client-name').value.trim();
+      const carNumber = document.getElementById('car-number').value.trim();
+      const phoneNumber = document.getElementById('phone-number').value.trim();
+      const quantity = document.getElementById('quantity').value.trim();
+
+      const matchedManager = findManagerByClient(clientName);
+
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timeStr = `${month}-${day} ${hours}:${minutes}`;
+
+      const newItem = {
+        workType: workType,
+        timeStr: timeStr,
+        manager: matchedManager,
+        carNumber: carNumber,
+        phoneNumber: phoneNumber,
+        clientName: clientName,
+        quantity: quantity,
+        note: "키오스크 신규 접수",
+        status: "WAITING",
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      dashboardRef.push(newItem).then(() => {
+        let currentWaiting = 0;
+        Object.values(localDataMap).forEach(item => {
+          if (item.status === 'WAITING') currentWaiting++;
+        });
+
+        document.getElementById('modal-queue-order-number').innerText = currentWaiting  ;
+        document.getElementById('kiosk-success-modal').classList.remove('hidden');
+
+        if (autoCloseTimer) clearTimeout(autoCloseTimer);
+        autoCloseTimer = setTimeout(() => {
+          closeKioskSuccessModal();
+        }, 10000);
+      }).catch(err => {
+        alert("접수 저장 실패: " + err.message);
+      });
+    }
+
+    function updateFirebaseField(key, field, value) {
+      dashboardRef.child(key).update({ [field]: value });
+    }
+
+    function updateDashboardStatus(key, newStatus) {
+      dashboardRef.child(key).update({ status: newStatus });
+    }
+
+    function deleteDashboardRow(key) {
+      if (confirm("해당 접수 건을 삭제하시겠습니까?")) {
+        dashboardRef.child(key).remove();
+      }
+    }
 
     function switchTab(tabName) {
       ['dashboard', 'export', 'kiosk'].forEach(t => {
@@ -315,11 +501,11 @@
         if (t === tabName) {
           tabEl.classList.remove('hidden');
           tabEl.classList.add('block');
-          btnEl.className = "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-blue-600 text-white shadow-sm";
+          if (btnEl) btnEl.className = "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition bg-blue-600 text-white shadow-sm";
         } else {
           tabEl.classList.add('hidden');
           tabEl.classList.remove('block');
-          btnEl.className = "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition";
+          if (btnEl) btnEl.className = "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition";
         }
       });
     }
@@ -338,91 +524,22 @@
       fetchSheetData(url);
     }
 
-    // 대시보드 삭제
-    function deleteDashboardRow(btnEl) {
-      if (confirm("해당 접수 건을 삭제하시겠습니까?")) {
-        const row = btnEl.closest('tr');
-        row.remove();
-        recalculateDashboardCounts();
+    function closeKioskSuccessModal() {
+      if (autoCloseTimer) {
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
       }
-    }
+      document.getElementById('kiosk-success-modal').classList.add('hidden');
+      document.getElementById('kiosk-form').reset();
 
-    // 대시보드 카운트 및 키오스크 실시간 대기순번 업데이트
-    function recalculateDashboardCounts() {
-      const selects = document.querySelectorAll('#tab-dashboard .status-select');
-      let waiting = 0, progress = 0, completed = 0;
-
-      selects.forEach(select => {
-        if (select.value === 'WAITING') waiting++;
-        else if (select.value === 'IN_PROGRESS') progress++;
-        else if (select.value === 'COMPLETED') completed++;
-      });
-
-      document.getElementById('count-total').innerText = selects.length;
-      document.getElementById('count-waiting').innerText = waiting;
-      document.getElementById('count-progress').innerText = progress;
-      document.getElementById('count-completed').innerText = completed;
-      document.getElementById('nav-badge').innerText = selects.length;
-
-      // 키오스크 상단 대기순번 텍스트 동기화
-      const headerQueueEl = document.getElementById('kiosk-header-queue-count');
-      if (headerQueueEl) {
-        headerQueueEl.innerText = waiting;
-      }
-
-      return waiting;
-    }
-
-    // 대시보드 상태 변경
-    function updateDashboardStatus(selectEl) {
-      const row = selectEl.closest('tr');
-      const val = selectEl.value;
-      const photoGroup = row.querySelector('.photo-btn-group');
-      const defaultText = row.querySelector('.default-photo-text');
-
-      if (val === 'WAITING') {
-        selectEl.className = "status-select w-full border border-amber-300 bg-amber-50 text-amber-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.add('hidden');
-        if (defaultText) defaultText.classList.remove('hidden');
-      } else if (val === 'IN_PROGRESS') {
-        selectEl.className = "status-select w-full border border-blue-300 bg-blue-50 text-blue-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.add('hidden');
-        if (defaultText) defaultText.classList.remove('hidden');
-      } else if (val === 'COMPLETED') {
-        selectEl.className = "status-select w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.remove('hidden');
-        if (defaultText) defaultText.classList.add('hidden');
-      }
-      recalculateDashboardCounts();
-    }
-
-    // 수출 현황판 상태 변경시 사진 업로드 열 제어
-    function updateExportStatus(selectEl) {
-      const row = selectEl.closest('tr');
-      const val = selectEl.value;
-      const photoGroup = row.querySelector('.export-photo-btn-group');
-      const defaultText = row.querySelector('.export-default-photo-text');
-
-      if (val === 'TALLY') {
-        selectEl.className = "w-full border border-indigo-300 bg-indigo-50 text-indigo-900 font-extrabold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.add('hidden');
-        if (defaultText) defaultText.classList.remove('hidden');
-      } else if (val === 'VANNING') {
-        selectEl.className = "w-full border border-blue-300 bg-blue-50 text-blue-900 font-extrabold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.add('hidden');
-        if (defaultText) defaultText.classList.remove('hidden');
-      } else if (val === 'DONE') {
-        selectEl.className = "w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-extrabold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.remove('hidden');
-        if (defaultText) defaultText.classList.add('hidden');
+      // 키오스크 전용 모드면 접수 완료 후에도 계속 키오스크 화면 유지
+      if (isKioskOnlyMode) {
+        switchTab('kiosk');
       } else {
-        selectEl.className = "w-full border border-slate-200 bg-white text-slate-700 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
-        if (photoGroup) photoGroup.classList.add('hidden');
-        if (defaultText) defaultText.classList.remove('hidden');
+        switchTab('dashboard');
       }
     }
 
-    // 사진 다중 선택 핸들러
     function handleMultiplePhotos(event, btnIndex) {
       const files = event.target.files;
       const row = event.target.closest('tr');
@@ -438,7 +555,6 @@
       previewList.appendChild(badge);
     }
 
-    // 입력된 화주명을 기준으로 예정표에서 담당자 검색
     function findManagerByClient(clientInput) {
       if (!clientInput) return "미정";
       const cleanInput = clientInput.trim().toLowerCase();
@@ -454,101 +570,6 @@
       return "미정";
     }
 
-    // 키오스크 접수 제출 핸들러
-    function handleKioskSubmit(e) {
-      e.preventDefault();
-
-      const workTypeInput = document.querySelector('input[name="work-type"]:checked');
-      const workType = workTypeInput ? workTypeInput.value : '미정';
-      const clientName = document.getElementById('client-name').value.trim();
-      const carNumber = document.getElementById('car-number').value.trim();
-      const phoneNumber = document.getElementById('phone-number').value.trim();
-      const quantity = document.getElementById('quantity').value.trim();
-
-      // 예정표(화주 매핑) 데이터에서 담당자 탐색
-      const matchedManager = findManagerByClient(clientName);
-
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const timeStr = `${month}-${day} ${hours}:${minutes}`;
-
-      const typeStyle = workType.includes('상차') 
-                        ? `<span class="text-amber-500 font-bold">${workType}</span>` 
-                        : `<span class="text-blue-600 font-bold">${workType}</span>`;
-
-      const tbody = document.getElementById('table-body');
-      const newTr = document.createElement('tr');
-      newTr.className = "hover:bg-slate-50/80 transition";
-
-      newTr.innerHTML = `
-        <td class="py-3.5 px-3 text-center nowrap-cell">
-          <button onclick="deleteDashboardRow(this)" class="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-lg border border-red-200 transition" title="접수건 삭제">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </td>
-        <td class="py-3.5 px-4 text-center nowrap-cell">${typeStyle}</td>
-        <td class="py-3.5 px-4 text-slate-500 nowrap-cell">${timeStr}</td>
-        <td class="py-3.5 px-4 min-w-[130px] nowrap-cell"><input type="text" value="${matchedManager}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-bold outline-none focus:border-blue-500"></td>
-        <td class="py-3.5 px-4 font-bold text-slate-800 nowrap-cell">${carNumber}</td>
-        <td class="py-3.5 px-4 text-slate-500 nowrap-cell">${phoneNumber}</td>
-        <td class="py-3.5 px-4 nowrap-cell"><input type="text" value="${clientName}" class="w-full border border-slate-200 rounded px-2 py-1 text-xs text-slate-800 outline-none"></td>
-        <td class="py-3.5 px-4 text-center font-bold text-blue-600 nowrap-cell">${quantity}</td>
-        <td class="py-3.5 px-4 nowrap-cell"><input type="text" value="키오스크 신규 접수" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs text-slate-700 outline-none"></td>
-        <td class="py-3.5 px-4 text-center nowrap-cell">
-          <select onchange="updateDashboardStatus(this)" class="status-select w-full border border-amber-300 bg-amber-50 text-amber-900 font-extrabold rounded-lg px-2 py-1.5 text-xs outline-none cursor-pointer">
-            <option value="WAITING" selected class="text-slate-900 bg-white">접수완료</option>
-            <option value="IN_PROGRESS" class="text-slate-900 bg-white">작업 중</option>
-            <option value="COMPLETED" class="text-slate-900 bg-white">작업 완료</option>
-          </select>
-        </td>
-        <td class="py-3.5 px-4 photo-cell nowrap-cell">
-          <div class="photo-btn-group hidden flex flex-col gap-1.5">
-            <div class="flex items-center gap-1.5">
-              <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
-                <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 1
-                <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 1)">
-              </label>
-              <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded-md font-medium flex items-center gap-1">
-                <i data-lucide="camera" class="w-3.5 h-3.5"></i> 사진 2
-                <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultiplePhotos(event, 2)">
-              </label>
-            </div>
-            <div class="photo-preview-list text-[11px] space-y-0.5"></div>
-          </div>
-          <span class="default-photo-text text-slate-400 text-xs">-</span>
-        </td>
-      `;
-
-      tbody.insertBefore(newTr, tbody.firstChild);
-      lucide.createIcons();
-
-      const currentWaitingCount = recalculateDashboardCounts();
-
-      // 모달 내 대기순번 숫자 업데이트 및 팝업 띄우기
-      document.getElementById('modal-queue-order-number').innerText = currentWaitingCount;
-      document.getElementById('kiosk-success-modal').classList.remove('hidden');
-
-      // 10초 후 자동 닫힘 타이머 설정
-      if (autoCloseTimer) clearTimeout(autoCloseTimer);
-      autoCloseTimer = setTimeout(() => {
-        closeKioskSuccessModal();
-      }, 10000); // 10000ms = 10초
-    }
-
-    function closeKioskSuccessModal() {
-      if (autoCloseTimer) {
-        clearTimeout(autoCloseTimer);
-        autoCloseTimer = null;
-      }
-      document.getElementById('kiosk-success-modal').classList.add('hidden');
-      document.getElementById('kiosk-form').reset();
-      switchTab('dashboard');
-    }
-
-    // 구글 시트 데이터 로드 (JSONP)
     function fetchSheetData(webAppUrl) {
       if (!webAppUrl) return;
 
@@ -563,7 +584,6 @@
 
       window.onSheetDataReceived = function(data) {
         if (data && data.error) {
-          alert("구글 시트 연동 오류: " + data.error);
           if (badge) {
             badge.className = "text-xs text-red-800 ml-2 bg-red-200 px-2.5 py-1 rounded-full font-bold";
             badge.innerText = "오류 발생";
@@ -582,18 +602,10 @@
       const connector = webAppUrl.includes('?') ? '&' : '?';
       script.src = `${webAppUrl}${connector}callback=onSheetDataReceived&_ts=${Date.now()}`;
       
-      script.onerror = function() {
-        alert("구글 시트 데이터를 불러오지 못했습니다.\n\n[확인 사항]\n1. URL이 올바른지 확인\n2. Apps Script 배포 시 '액세스 권한: 모든 사용자'로 설정했는지 확인");
-        if (badge) {
-          badge.className = "text-xs text-red-800 ml-2 bg-red-200 px-2.5 py-1 rounded-full font-bold";
-          badge.innerText = "연동 실패";
-        }
-      };
-
       document.body.appendChild(script);
     }
 
-    // 수출 현황판 테이블 렌더링 및 화주-담당자 매핑 구조 저장
+    // [수정된 부분 1] Export 탭 테이블 생성 시 select 이벤트 추가
     function renderExportTable(rows) {
       const tbody = document.getElementById('export-table-body');
       if (!tbody) return;
@@ -635,7 +647,7 @@
           <td class="py-2.5 px-2 border-r border-slate-200"><input type="text" value="${row[14] || ''}" class="w-full text-center border border-slate-200 rounded px-1 py-1 text-xs font-bold outline-none focus:border-indigo-500"></td>
           <td class="py-2.5 px-3 border-r border-slate-200 min-w-[130px]"><input type="text" value="${row[15] || ''}" class="w-full text-center bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs font-bold outline-none focus:border-indigo-500"></td>
           <td class="py-2.5 px-3 border-r border-slate-200 min-w-[140px]">
-            <select onchange="updateExportStatus(this)" class="w-full border border-slate-200 bg-white text-slate-700 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer">
+            <select onchange="handleExportStatusChange(this)" class="w-full border border-slate-200 bg-white text-slate-700 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer">
               <option value="NONE" selected>선택 안함</option>
               <option value="TALLY">TALLY완료</option>
               <option value="VANNING">적입중</option>
@@ -665,13 +677,20 @@
       lucide.createIcons();
     }
 
-    function refreshData() {
-      const savedUrl = localStorage.getItem('sheetWebAppUrl');
-      if (savedUrl) {
-        fetchSheetData(savedUrl);
+    // [수정된 부분 2] Export 탭 상태 변경 시 사진 UI 토글 함수
+    function handleExportStatusChange(selectElement) {
+      const row = selectElement.closest('tr');
+      const photoGroup = row.querySelector('.export-photo-btn-group');
+      const defaultText = row.querySelector('.export-default-photo-text');
+
+      if (selectElement.value === 'DONE') {
+        photoGroup.classList.remove('hidden');
+        defaultText.classList.add('hidden');
+        selectElement.className = "w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
       } else {
-        alert("우측 상단 톱니바퀴(⚙️) 버튼을 눌러 구글 Apps Script 웹 앱 URL을 먼저 등록해 주세요.");
-        openSettingsModal();
+        photoGroup.classList.add('hidden');
+        defaultText.classList.remove('hidden');
+        selectElement.className = "w-full border border-slate-200 bg-white text-slate-700 font-bold rounded-lg px-2.5 py-1.5 text-xs outline-none cursor-pointer";
       }
     }
 
@@ -686,36 +705,18 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      const savedUrl = localStorage.getItem('sheetWebAppUrl');
-      if (savedUrl) {
-        document.getElementById('sheet-url-input').value = savedUrl;
-        fetchSheetData(savedUrl);
+      // ?mode=kiosk 주소로 접속했을 때 처리
+      if (isKioskOnlyMode) {
+        document.getElementById('main-header').classList.add('hidden'); // 헤더 완전히 숨김
+        switchTab('kiosk'); // 오직 키오스크 화면만 띄움
+      } else {
+        const savedUrl = localStorage.getItem('sheetWebAppUrl');
+        if (savedUrl) {
+          document.getElementById('sheet-url-input').value = savedUrl;
+          fetchSheetData(savedUrl);
+        }
       }
-      recalculateDashboardCounts();
     });
   </script>
-<!-- 1. Firebase SDK 불러오기 (실시간 데이터베이스 포함) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<script>
-  // 2. 발급받으신 Firebase 설정값
-  const firebaseConfig = {
-    apiKey: "AIzaSyDgXG4dVextcvKD2vwsa11Y7zXPp8rbI08",
-    authDomain: "kiglsystem.firebaseapp.com",
-    databaseURL: "https://kiglsystem-default-rtdb.firebaseio.com",
-    projectId: "kiglsystem",
-    storageBucket: "kiglsystem.firebasestorage.app",
-    messagingSenderId: "782535308238",
-    appId: "1:782535308238:web:afab46d543d96648eb319f",
-    measurementId: "G-TTV99051J8"
-  };
-
-  // 3. Firebase 및 Realtime Database 초기화
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-
-  console.log("Firebase 연동 완료!");
-</script>
 </body>
 </html>
